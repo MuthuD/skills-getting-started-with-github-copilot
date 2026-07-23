@@ -1,23 +1,24 @@
-from fastapi.testclient import TestClient
+import pytest
 
-from src.app import app, activities
-
-
-client = TestClient(app)
+from src.app import activities
 
 
-def test_unregister_participant_removes_email():
+pytestmark = pytest.mark.anyio
+
+
+async def test_unregister_participant_removes_email(client):
+    # Arrange
     activity = activities["Chess Club"]
-    original_participants = list(activity["participants"])
+    email = "michael@mergington.edu"
+    assert email in activity["participants"]
 
-    try:
-        response = client.delete(
-            "/activities/Chess Club/signup",
-            params={"email": "michael@mergington.edu"},
-        )
+    # Act
+    response = await client.delete(
+        "/activities/Chess Club/signup",
+        params={"email": email},
+    )
 
-        assert response.status_code == 200
-        assert "michael@mergington.edu" not in activity["participants"]
-        assert response.json()["message"] == "Unregistered michael@mergington.edu for Chess Club"
-    finally:
-        activity["participants"] = original_participants
+    # Assert
+    assert response.status_code == 200
+    assert email not in activity["participants"]
+    assert response.json()["message"] == f"Unregistered {email} for Chess Club"
